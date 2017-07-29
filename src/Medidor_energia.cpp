@@ -5,6 +5,9 @@ extern "C"{
 #include "user_interface.h"
 }
 
+#define opt_off 10  //inserir a leitura do opto sensor quando o led desligado
+#define opt_on 50
+
 os_timer_t mTimer;
 
 int contador, leituras, cont_pulso;
@@ -30,27 +33,25 @@ void usrInit(void){
 
 int opt_101; //Tensao do leitor de luminosidade opt101
 
-Ticker ticker;
-void tick()
-{
-  //toggle state
-  // int state = digitalRead(LED_AZUL);  // get the current state of GPIO1 pin
-  // digitalWrite(LED_AZUL, !state);     // set pin to the opposite state
-  pisca++;
-}
+// Ticker ticker;
+// void tick()
+// {
+//   toggle state
+//   int state = digitalRead(LED_AZUL);  // get the current state of GPIO1 pin
+//   digitalWrite(LED_AZUL, !state);     // set pin to the opposite state
+//   pisca++;
+// }
 
 void setup()
 {
     Serial.begin(9600);
     pinMode(LED_AZUL, OUTPUT);
-    ticker.attach(0.1, tick);
-    usrInit();
+    // ticker.attach(0.1, tick);
+    // usrInit();
 }
 
 void loop()
 {
-  Serial.print("pisca: ");
-  Serial.println(pisca/2);
   Serial.print("pulsos: ");
   Serial.println(cont_pulso);
   Serial.print("leituras por segundo: ");
