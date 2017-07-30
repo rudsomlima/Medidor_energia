@@ -14,22 +14,28 @@ extern "C"{
 #define mqtt_user "general"
 #define mqtt_password "smolder79"
 
-#define your_topic "medidor"
+#define topico_medidor "medidor"
+#define topico_lum "lum"
+#define topico_set_lum "lum_setada"
+#define topico_input_lum "input_lum"
 
 WiFiClient espClient;
-PubSubClient client(espClient);
+void callback(char* topic, byte* payload, unsigned int length);
+//PubSubClient client(espClient);
+PubSubClient client(mqtt_server, 1883, callback, espClient);
 
-#define opt_off 10  //inserir a leitura do opto sensor quando o led desligado
+
 //#define opt_on 50
 
 os_timer_t mTimer;
 
 int contador, leituras, cont_pulso;
 bool led_pulso, led_pulso_ant=0, pisca;
+int opt_off = 10;  //inserir a leitura do opto sensor quando o led desligado
 
 //Nunca execute nada na interrupcao, apenas setar flags!
 void tCallback(void *tCall){
-    if(analogRead(A0)>opt_off) led_pulso = 1;  //testa o estado do led atraves do leitor otico
+    if(analogRead(A0)>opt_off) led_pulso = 1;  //testa o estado do led atraves do leitor optico
     else led_pulso = 0;
 
     if(!led_pulso_ant & led_pulso) cont_pulso++; //se mudou de 0 pra 1, incrementa
@@ -64,7 +70,7 @@ void setup()
     pinMode(LED_AZUL, OUTPUT);
     setup_wifi();
     client.setServer(mqtt_server, 1883);
-    // ticker.attach(0.1, tick);
+        // ticker.attach(0.1, tick);
     usrInit();
 }
 
@@ -88,6 +94,20 @@ void setup_wifi() {
   Serial.println(WiFi.localIP());
 }
 
+void callback(char* topic, byte* payload, unsigned int length) {
+  String msg = "";
+  Serial.print("Mensagem recebida [");
+  Serial.print(topic);
+  Serial.print("] ");
+  for (int i = 0; i < length; i++) {
+    Serial.print((char)payload[i]);
+    msg += (char)payload[i];
+  }
+  Serial.println();
+  if(topic==topico_input_lum) opt_off = msg.toInt();
+  Serial.println(opt_off);
+}
+
 void reconnect() {
   // Loop until we're reconnected
   while (!client.connected()) {
@@ -108,7 +128,7 @@ void reconnect() {
 }
 
 long lastMsg = 0;
-int cont = 0;
+int cont = 0, valor_lum;
 
 void loop()
 {
@@ -120,7 +140,9 @@ void loop()
   Serial.println(cont_pulso);
   Serial.print("leituras por segundo: ");
   Serial.println(contador);
-  Serial.println(analogRead(A0));
+  valor_lum = analogRead(A0);
+  Serial.print("valor_lum: ");
+  Serial.println(valor_lum);
   //Serial.println(leituras);
   //leituras++;
   contador=0;  //zera a contagem de interrupcoes por segundo q esta ocorrendo
@@ -132,16 +154,15 @@ void loop()
   delay(990);
   yield();
 
+
+
   long now = millis();
 
-  if (now - lastMsg > 10000) {
+  if (now - lastMsg > 10000) {   //executa a cada 10s
     lastMsg = now;
-
-    //cont += 1;
-
-    client.publish(your_topic, String(cont_pulso).c_str(), true);
-
+    client.subscribe("input_lum");   //faz uma leitura no topico lum para receber msg
+    client.publish(topico_lum, String(valor_lum).c_str(), true); //publica a luminosidade do sensor
+    client.publish(topico_medidor, String(cont_pulso).c_str(), true); //publica a contagem de pulsos KWh
+    client.publish(topico_input_lum, String(opt_off).c_str(), true); //publica a contagem de pulsos KWh
   }
-
-
 }
