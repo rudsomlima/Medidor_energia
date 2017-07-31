@@ -28,7 +28,7 @@ int contador, leituras, cont_pulso;
 bool led_medidor, led_medidor_ant=1, pisca;
 int pulso, pulso_max; //valor da medicao do led na piscada
 String envio;
-bool flag_leitura;
+bool flag_pulso;  //verifica q houve pulso
 
 //Nunca execute nada na interrupcao, apenas setar flags!
 void tCallback(void *tCall){
@@ -37,7 +37,10 @@ void tCallback(void *tCall){
     if(pulso<pulso_max-20) led_medidor = 0; //nao houve pulso do led do medidor, valor de leitura base do opto
     else led_medidor = 1;
 
-    if(!led_medidor_ant & led_medidor) cont_pulso++; //se mudou de 0 pra 1, incrementa
+    if(!led_medidor_ant & led_medidor) {
+      cont_pulso++; //se mudou de 0 pra 1, incrementa
+      flag_pulso=1;
+    }
     led_medidor_ant = led_medidor;
 
     if(pulso>pulso_max)  pulso_max = pulso; //pega o valor maximo do pulso do led
@@ -161,13 +164,14 @@ void loop()
   digitalWrite(LED_AZUL, HIGH);
   delay(700);
   yield();
-  envio = String(cont_pulso) + "n" + String(pulso) + "n" + String(pulso_max);
-  client.publish("set_lum", String(envio).c_str(), true); //publica a contagem de pulsos KWh
-  Serial.println(envio);
-  yield();
-
+  if(flag_pulso) {  //so envia dados se houver pulso no led do medidor
+    envio = String(cont_pulso) + "n" + String(pulso) + "n" + String(pulso_max);
+    client.publish("set_lum", String(envio).c_str(), true); //publica a contagem de pulsos KWh
+    Serial.println(envio);
+    flag_pulso=0; //so executa de novo se houver nova piscada no led do medidor
+    yield();
+  }
   long now = millis();
-
   if (now - lastMsg > 10000) {   //executa a cada 10s
     lastMsg = now;
     Serial.println("pegando dados ################################ ");
