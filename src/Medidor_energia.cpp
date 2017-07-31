@@ -16,7 +16,7 @@ extern "C"{
 
 
 #define topico_input_lum "input_lum"
-#define topico_pulso_alto "pulso_alto_max"
+#define topico_pulso "pulso_max"
 
 WiFiClient espClient;
 void callback(char* topic, byte* payload, unsigned int length);
@@ -25,23 +25,26 @@ PubSubClient client(mqtt_server, 1883, callback, espClient);
 os_timer_t mTimer;
 
 int contador, leituras, cont_pulso;
-bool led_pulso, led_pulso_ant=0, pisca;
+bool led_medidor, led_medidor_ant=1, pisca;
 int opt_off = 10;  //inserir a leitura do opto sensor quando o led desligado
-int pulso_alto, pulso_alto_max; //valor da medicao do led na piscada
+int pulso, pulso_max; //valor da medicao do led na piscada
 String envio;
 
 //Nunca execute nada na interrupcao, apenas setar flags!
 void tCallback(void *tCall){
-    pulso_alto = analogRead(A0);
-    if(pulso_alto>opt_off) led_pulso = 1;  //testa o estado do led atraves do leitor optico
-    else led_pulso = 0;
+    pulso = analogRead(A0);
+    // if(pulso>opt_off) led_medidor = 1;  //testa o estado do led do medidor atraves do leitor optico
+    //else led_medidor = 0;
 
-    if(pulso_alto>pulso_alto_max)  pulso_alto_max = pulso_alto; //pega o valor maximo do pulso do led
+    if(pulso<pulso_max) led_medidor = 0; //nao houve pulso do led, valor de leitura base do opto
+    else led_medidor = 1;
 
-    if(!led_pulso_ant & led_pulso) cont_pulso++; //se mudou de 0 pra 1, incrementa
-    led_pulso_ant = led_pulso;
+    if(!led_medidor_ant & led_medidor) cont_pulso++; //se mudou de 0 pra 1, incrementa
+    led_medidor_ant = led_medidor;
 
-    contador++;
+    if(pulso>pulso_max)  pulso_max = pulso; //pega o valor maximo do pulso do led
+
+    contador++;   //pra calcular quantas vezes essa funcao eh executada
 }
 
 //FUNCAO DE EXECUCAO COM ESTOURO DE TIMER
@@ -152,14 +155,12 @@ void loop()
   Serial.print("leituras por segundo: ");
   Serial.println(contador);
   //valor_lum = analogRead(A0);
-  Serial.print("valor_lum: ");
-  Serial.println(pulso_alto);
-  Serial.print("pulso_alto_max: ");
-  Serial.println(pulso_alto_max);
-
-  //Serial.println(leituras);
-  //leituras++;
-  contador=0;  //zera a contagem de interrupcoes por segundo q esta ocorrendo
+  Serial.print("opto_min: ");
+  Serial.println(pulso);
+  Serial.print("pulso_max: ");
+  Serial.println(pulso_max);
+  pulso_max = 0; //reinicia o pulso_max para se recalibrar
+  contador = 0;  //zera a contagem de interrupcoes por segundo q esta ocorrendo
   yield();
 
   digitalWrite(LED_AZUL, LOW);
@@ -167,7 +168,7 @@ void loop()
   digitalWrite(LED_AZUL, HIGH);
   delay(990);
   yield();
-  envio = String(cont_pulso) + "n" + String(pulso_alto) + "n" + String(pulso_alto_max);
+  envio = String(cont_pulso) + "n" + String(pulso) + "n" + String(pulso_max);
   client.publish("set_lum", String(envio).c_str(), true); //publica a contagem de pulsos KWh
   Serial.println(envio);
   yield();
@@ -178,6 +179,6 @@ void loop()
     lastMsg = now;
     Serial.println("pegando dados ################################ ");
     client.subscribe("input");   //faz uma leitura no topico para receber
-    pulso_alto_max=0; //reinicia o pulso_alto_max
+    // pulso_max=0; //reinicia o pulso_max
   }
 }
