@@ -14,18 +14,13 @@ extern "C"{
 #define mqtt_user "general"
 #define mqtt_password "smolder79"
 
-#define topico_medidor "medidor"
-#define topico_set_lum "set_lum"
+
 #define topico_input_lum "input_lum"
 #define topico_pulso_alto "pulso_alto_max"
 
 WiFiClient espClient;
 void callback(char* topic, byte* payload, unsigned int length);
-//PubSubClient client(espClient);
 PubSubClient client(mqtt_server, 1883, callback, espClient);
-
-
-//#define opt_on 50
 
 os_timer_t mTimer;
 
@@ -75,8 +70,9 @@ void setup()
     pinMode(LED_AZUL, OUTPUT);
     setup_wifi();
     client.setServer(mqtt_server, 1883);
-        // ticker.attach(0.1, tick);
+    // ticker.attach(0.1, tick);
     usrInit();
+
 }
 
 void setup_wifi() {
@@ -110,15 +106,17 @@ void callback(char* topic, byte* payload, unsigned int length) {
     msg += (char)payload[i];
   }
   Serial.println();
-  if(topico==topico_input_lum) {
+  if(topico=="input") {
     if(msg=="[]") cont_pulso=0; //se receber a msg "[]" zera o medidor KWh
+    //if(msg.startsWith("#")) {
+      //msg.remove(0);
     else {
       opt_off = msg.toInt();
       Serial.print("opt_off setado: ");
       Serial.println(opt_off);
     }
   }
-  // Serial.println(msg);
+  Serial.println(msg);
 }
 
 void reconnect() {
@@ -170,26 +168,16 @@ void loop()
   delay(990);
   yield();
   envio = String(cont_pulso) + "n" + String(pulso_alto) + "n" + String(pulso_alto_max);
-  // client.publish(topico_medidor, String(cont_pulso).c_str(), true); //publica a contagem de pulsos KWh
-  // yield();
-  client.publish(topico_set_lum, String(envio).c_str(), true); //publica a contagem de pulsos KWh
+  client.publish("set_lum", String(envio).c_str(), true); //publica a contagem de pulsos KWh
   Serial.println(envio);
   yield();
-  // client.publish(topico_input_lum, String(pulso_alto).c_str(), true); //publica a contagem de pulsos KWh
-  // yield();
-  // client.publish(topico_pulso_alto, String(pulso_alto_max).c_str(), true); //publica a contagem de pulsos KWh
-  // yield();
-
-
 
   long now = millis();
 
   if (now - lastMsg > 10000) {   //executa a cada 10s
     lastMsg = now;
-    client.subscribe("input_lum");   //faz uma leitura no topico lum para receber msgclient.publish(topico_lum, String(valor_lum).c_str(), true); //publica a luminosidade do sensor
-    yield();
-
+    Serial.println("pegando dados ################################ ");
+    client.subscribe("input");   //faz uma leitura no topico para receber
     pulso_alto_max=0; //reinicia o pulso_alto_max
-
   }
 }
