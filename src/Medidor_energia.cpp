@@ -26,17 +26,15 @@ os_timer_t mTimer;
 
 int contador, leituras, cont_pulso;
 bool led_medidor, led_medidor_ant=1, pisca;
-int opt_off = 10;  //inserir a leitura do opto sensor quando o led desligado
 int pulso, pulso_max; //valor da medicao do led na piscada
 String envio;
+bool flag_leitura;
 
 //Nunca execute nada na interrupcao, apenas setar flags!
 void tCallback(void *tCall){
     pulso = analogRead(A0);
-    // if(pulso>opt_off) led_medidor = 1;  //testa o estado do led do medidor atraves do leitor optico
-    //else led_medidor = 0;
 
-    if(pulso<pulso_max) led_medidor = 0; //nao houve pulso do led, valor de leitura base do opto
+    if(pulso<pulso_max-20) led_medidor = 0; //nao houve pulso do led do medidor, valor de leitura base do opto
     else led_medidor = 1;
 
     if(!led_medidor_ant & led_medidor) cont_pulso++; //se mudou de 0 pra 1, incrementa
@@ -113,11 +111,6 @@ void callback(char* topic, byte* payload, unsigned int length) {
     if(msg=="[]") cont_pulso=0; //se receber a msg "[]" zera o medidor KWh
     //if(msg.startsWith("#")) {
       //msg.remove(0);
-    else {
-      opt_off = msg.toInt();
-      Serial.print("opt_off setado: ");
-      Serial.println(opt_off);
-    }
   }
   Serial.println(msg);
 }
@@ -164,9 +157,9 @@ void loop()
   yield();
 
   digitalWrite(LED_AZUL, LOW);
-  delay(10);
+  delay(300);
   digitalWrite(LED_AZUL, HIGH);
-  delay(990);
+  delay(700);
   yield();
   envio = String(cont_pulso) + "n" + String(pulso) + "n" + String(pulso_max);
   client.publish("set_lum", String(envio).c_str(), true); //publica a contagem de pulsos KWh
