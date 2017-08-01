@@ -127,7 +127,9 @@ void reconnect() {
     // if (client.connect("ESP8266Client")) {
     if (client.connect("ESP8266Client", mqtt_user, mqtt_password)) {
       Serial.println("connected");
-    } else {
+      client.subscribe("input");   //faz uma leitura no topico para receber
+    }
+    else {
       Serial.print("failed, rc=");
       Serial.print(client.state());
       Serial.println(" try again in 5 seconds");
@@ -171,11 +173,10 @@ void loop()
     flag_pulso=0; //so executa de novo se houver nova piscada no led do medidor
     yield();
   }
-  long now = millis();
-  if (now - lastMsg > 10000) {   //executa a cada 10s
-    lastMsg = now;
-    Serial.println("pegando dados ################################ ");
-    client.subscribe("input");   //faz uma leitura no topico para receber
-    // pulso_max=0; //reinicia o pulso_max
-  }
+  // long now = millis();
+  // if (now - lastMsg > 10000) {   //executa a cada 10s
+  //   lastMsg = now;
+  //   Serial.println("pegando dados ################################ ");
+  //   pulso_max=0; //reinicia o pulso_max
+  // }
 }
